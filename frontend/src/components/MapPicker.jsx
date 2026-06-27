@@ -92,7 +92,12 @@ export default function MapPicker({ lat, lng, onChange }) {
       alert('Geolocation is not supported by your browser.');
       return;
     }
+    
     setLoading(true);
+    
+    // Check if we're on mobile device
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude: lt, longitude: lg } = pos.coords;
@@ -108,11 +113,20 @@ export default function MapPicker({ lat, lng, onChange }) {
           errorMsg = 'Location request timed out. Please try again.';
         } else if (err.code === err.PERMISSION_DENIED) {
           errorMsg = 'Location permission denied. Please allow location access.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          errorMsg = 'Location information is unavailable. Please try again.';
         }
         alert(errorMsg);
         setLoading(false);
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      {
+        // Mobile devices need high accuracy for GPS to work properly
+        enableHighAccuracy: isMobile,
+        // Mobile GPS can take longer to acquire, especially indoors
+        timeout: isMobile ? 30000 : 10000,
+        // Use cached position if available (faster response)
+        maximumAge: 0
+      }
     );
   };
 
