@@ -17,13 +17,10 @@ import {
 const INCIDENT_TYPES = [
   { value: '', label: 'Select incident type' },
   { value: 'waterlogging', label: 'Waterlogging' },
-  { value: 'flash_flood', label: 'Flash Flood' },
   { value: 'drain_overflow', label: 'Drain Overflow' },
   { value: 'road_submerged', label: 'Road Submerged' },
   { value: 'house_flooded', label: 'House Flooded' },
   { value: 'basement_flooded', label: 'Basement Flooded' },
-  { value: 'tree_fall', label: 'Tree Fall' },
-  { value: 'power_disruption', label: 'Power Disruption' },
   { value: 'drainage_blockage', label: 'Drainage Blockage' },
   { value: 'other', label: 'Other' },
 ];
