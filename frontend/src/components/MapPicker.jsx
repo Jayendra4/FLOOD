@@ -55,12 +55,24 @@ export default function MapPicker({ lat, lng, onChange }) {
   const reverseGeocode = async (newLat, newLng) => {
     setGeocoding(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${newLat}&lon=${newLng}&format=json&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?lat=${newLat}&lon=${newLng}&format=json&addressdetails=1`,
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        throw new Error('Geocoding failed');
+      }
+      
       const data = await res.json();
       return data.display_name || '';
-    } catch {
+    } catch (err) {
+      console.error('Reverse geocoding error:', err);
       return '';
     } finally {
       setGeocoding(false);
@@ -89,11 +101,18 @@ export default function MapPicker({ lat, lng, onChange }) {
         await handleLocationUpdate(lt, lg, true);
         setLoading(false);
       },
-      () => {
-        alert('Unable to get location. Please enable location services.');
+      (err) => {
+        console.error('Geolocation error:', err);
+        let errorMsg = 'Unable to get location. Please enable location services.';
+        if (err.code === err.TIMEOUT) {
+          errorMsg = 'Location request timed out. Please try again.';
+        } else if (err.code === err.PERMISSION_DENIED) {
+          errorMsg = 'Location permission denied. Please allow location access.';
+        }
+        alert(errorMsg);
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     );
   };
 
