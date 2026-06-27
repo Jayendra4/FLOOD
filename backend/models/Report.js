@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const path = require('path');
 
 const reportSchema = new mongoose.Schema(
   {
@@ -28,9 +27,9 @@ const reportSchema = new mongoose.Schema(
     description: { type: String, trim: true, default: '' },
     remarks: { type: String, trim: true, default: '' },
 
-    // Media — store only the filename (e.g. "1234567890-987654321.jpg")
-    photoPaths: [{ type: String }],
-    videoPaths: [{ type: String }],
+    // Media — store Cloudinary URLs directly
+    photoUrls: [{ type: String }],
+    videoUrls: [{ type: String }],
 
     // Admin-managed status
     status: {
@@ -44,20 +43,6 @@ const reportSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Virtual: build full public URLs from stored filenames
-reportSchema.virtual('photoUrls').get(function () {
-  const base = process.env.BASE_URL || 'http://localhost:8000';
-  return (this.photoPaths || []).map((p) => `${base}/uploads/${path.basename(p)}`);
-});
-
-reportSchema.virtual('videoUrls').get(function () {
-  const base = process.env.BASE_URL || 'http://localhost:8000';
-  return (this.videoPaths || []).map((p) => `${base}/uploads/${path.basename(p)}`);
-});
-
-reportSchema.set('toJSON', { virtuals: true });
-reportSchema.set('toObject', { virtuals: true });
 
 const Report = mongoose.model('Report', reportSchema);
 module.exports = Report;

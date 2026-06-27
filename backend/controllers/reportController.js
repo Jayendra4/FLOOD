@@ -1,6 +1,5 @@
-const path = require('path');
 const Report = require('../models/Report');
-const { parseFloatOrNull, deleteFile, getISTTimestamp } = require('../utils/helpers');
+const { parseFloatOrNull, deleteCloudinaryResource, getISTTimestamp } = require('../utils/helpers');
 
 // POST /api/reports
 const createReport = async (req, res, next) => {
@@ -8,9 +7,9 @@ const createReport = async (req, res, next) => {
     console.log('[createReport] body:', req.body);
     console.log('[createReport] files:', req.files);
 
-    // Extract filenames from Multer (store only basename for portability)
-    const photoPaths = (req.files?.photos || []).map((f) => path.basename(f.path));
-    const videoPaths = (req.files?.videos || []).map((f) => path.basename(f.path));
+    // Extract Cloudinary URLs from uploaded files
+    const photoUrls = (req.files?.photos || []).map((f) => f.path || f.secure_url);
+    const videoUrls = (req.files?.videos || []).map((f) => f.path || f.secure_url);
 
     const reportData = {
       fullName: req.body.fullName,
@@ -28,8 +27,8 @@ const createReport = async (req, res, next) => {
       severity: req.body.severity,
       description: req.body.description || '',
       remarks: req.body.remarks || '',
-      photoPaths,
-      videoPaths,
+      photoUrls,
+      videoUrls,
       createdAtIST: getISTTimestamp(),
     };
 
@@ -92,10 +91,9 @@ const deleteReport = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
 
-    // Clean up uploaded files from disk
-    const uploadsDir = path.join(__dirname, '../uploads');
-    [...report.photoPaths, ...report.videoPaths].forEach((filename) => {
-      deleteFile(path.join(uploadsDir, filename));
+    // Delete files from Cloudinary
+    [...(report.photoUrls || []), ...(report.videoUrls || [])].forEach((url) => {
+      deleteCloudinaryResource(url);
     });
 
     res.status(200).json({ success: true, message: 'Report deleted successfully' });

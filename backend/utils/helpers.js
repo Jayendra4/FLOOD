@@ -1,5 +1,11 @@
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 /**
  * Returns current time as a human-readable IST string.
@@ -19,26 +25,29 @@ const getISTTimestamp = () => {
 };
 
 /**
- * Build a public URL for a stored file.
- * @param {string} filePath - The full path or filename saved by Multer
- * @returns {string} Public URL accessible via /uploads/<filename>
+ * Delete a resource from Cloudinary using its URL.
+ * @param {string} url - Cloudinary URL of the resource to delete
  */
-const buildFileUrl = (filePath) => {
-  const base = process.env.BASE_URL || 'http://localhost:8000';
-  return `${base}/uploads/${path.basename(filePath)}`;
-};
-
-/**
- * Delete a file from disk if it exists.
- * @param {string} filePath - Absolute path to the file
- */
-const deleteFile = (filePath) => {
+const deleteCloudinaryResource = async (url) => {
   try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    if (!url) return;
+    
+    // Extract public_id from Cloudinary URL
+    // URL format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/public_id.ext
+    const urlParts = url.split('/');
+    const uploadIndex = urlParts.indexOf('upload');
+    if (uploadIndex === -1) return;
+    
+    const publicIdWithVersion = urlParts.slice(uploadIndex + 1).join('/');
+    const publicId = publicIdWithVersion.replace(/v\d+\//, '').replace(/\.[^.]+$/, '');
+    
+    // Determine resource type from URL
+    const resourceType = url.includes('/video/') ? 'video' : 'image';
+    
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    console.log(`[deleteCloudinaryResource] Deleted: ${publicId}`);
   } catch (err) {
-    console.error(`[deleteFile] Could not delete ${filePath}:`, err.message);
+    console.error(`[deleteCloudinaryResource] Could not delete ${url}:`, err.message);
   }
 };
 
@@ -52,4 +61,4 @@ const parseFloatOrNull = (value) => {
   return isNaN(n) ? null : n;
 };
 
-module.exports = { buildFileUrl, deleteFile, parseFloatOrNull, getISTTimestamp };
+module.exports = { deleteCloudinaryResource, parseFloatOrNull, getISTTimestamp };
